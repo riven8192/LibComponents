@@ -24,7 +24,7 @@ public abstract class LiveFile {
 
 	public synchronized void poll() {
 		if (this.needsUpdate()) {
-			this.onUpdate(lastdata);
+			this.onUpdate(this.lastdata);
 		}
 	}
 
@@ -33,27 +33,28 @@ public abstract class LiveFile {
 	private boolean needsUpdate() {
 		long now = Clock.now();
 
-		if (now - lastcheck < interval) {
+		if (now - this.lastcheck < this.interval) {
 			return false;
 		}
 
-		if (!file.exists() || file.isDirectory()) {
+		if (!this.file.exists() || this.file.isDirectory()) {
 			return false;
 		}
 
-		long lastmod = file.lastModified();
+		long lastmod = this.file.lastModified();
 		if (lastmod == this.lastmod) {
 			return false;
 		}
 
-		byte[] data = FileUtil.readFile(file);
-		if (Arrays.equals(data, lastdata)) {
+		this.lastmod = lastmod;
+		this.lastcheck = now;
+
+		byte[] data = FileUtil.readFile(this.file);
+		if (Arrays.equals(data, this.lastdata)) {
 			return false;
 		}
 
-		this.lastcheck = now;
-		this.lastmod = lastmod;
-		lastdata = data;
+		this.lastdata = data;
 
 		return true;
 	}

@@ -3,9 +3,11 @@
  */
 package craterstudio.net.smtp;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.Socket;
@@ -15,7 +17,6 @@ import java.util.List;
 import craterstudio.io.Streams;
 import craterstudio.net.DNS;
 import craterstudio.text.Text;
-import craterstudio.text.TextDateTime;
 import craterstudio.text.TextHttpDate;
 
 public class Smtp {
@@ -40,6 +41,7 @@ public class Smtp {
 
 	private final boolean verbose;
 	private BufferedReader reader;
+	private OutputStream output;
 	private Writer writer;
 
 	public Smtp() {
@@ -69,7 +71,7 @@ public class Smtp {
 		System.out.println("SMTP <--> connected: " + socket);
 
 		reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-		writer = new OutputStreamWriter(socket.getOutputStream());
+		writer = new OutputStreamWriter(output = new BufferedOutputStream(socket.getOutputStream()));
 
 		String s;
 
@@ -85,6 +87,35 @@ public class Smtp {
 		this.writeln("HELO " + HELO_HOSTNAME);
 		if (!this.readln().startsWith("250"))
 			throw new IllegalStateException("failed on 'HELO' command");
+	}
+
+	public final void sendRaw(SmtpMail mail, String rcpt, byte[] raw) throws IOException {
+		mail.verifyRaw();
+
+		this.writeln("MAIL FROM: <" + mail.getFrom().address + ">");
+		if (!this.readln().startsWith("250 "))
+			throw new IllegalStateException("failed on 'MAIL FROM' command");
+
+		this.writeln("RCPT TO: <" + rcpt + ">");
+		if (!this.readln().startsWith("250 "))
+			throw new IllegalStateException("failed on 'RCTP TO' command");
+
+		this.writeln("DATA");
+		if (!this.readln().startsWith("354 "))
+			throw new IllegalStateException("failed on 'DATA' command");
+
+		if (this.verbose) {
+			System.out.println("SMTP -->> RAW [" + raw.length + " bytes]");
+		}
+		this.output.write(raw);
+		this.output.flush();
+
+		// "\r\n.\r\n"
+		this.writeln("");
+		this.writeln("."); // END_OF_MESSAGE
+
+		if (!this.readln().startsWith("250 "))
+			throw new IllegalStateException("failed on '.' command");
 	}
 
 	public final void send(SmtpMail mail, String rcpt) throws IOException {
@@ -146,6 +177,7 @@ public class Smtp {
 			}
 		}
 
+		// "\r\n.\r\n"
 		this.writeln("");
 		this.writeln("."); // END_OF_MESSAGE
 

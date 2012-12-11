@@ -1,10 +1,12 @@
 package craterstudio.encryption.ssl.nio;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -30,6 +32,7 @@ import craterstudio.func.Callback;
 import craterstudio.io.Streams;
 import craterstudio.io.TcpServer;
 import craterstudio.misc.MainParams;
+import craterstudio.streams.SharingOutputStream;
 import craterstudio.text.Text;
 import craterstudio.text.TextValues;
 import craterstudio.time.Clock;
@@ -53,6 +56,9 @@ public abstract class IoForward {
 				try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
 					while (true) {
 						String line = br.readLine();
+						if (line == null) {
+							break;
+						}
 
 						Map<Thread, StackTraceElement[]> map = Thread.getAllStackTraces();
 						Map<Thread, Long> threadToUsr = new HashMap<>();
@@ -93,53 +99,93 @@ public abstract class IoForward {
 		args = Arrays.copyOfRange(args, 1, args.length);
 		MainParams params = new MainParams();
 
-		if (cmd.equals("SOCKS")) {
-			params.addProps("host", "port", "backlog", "timeout", "workers", "conf");
+		if (cmd.equals("NAT")) {
+			params.addProps("backlog", "timeout", "workers", "conf");
 			params.parse(args);
-			new IoForwardSOCKS(params).listen(params);
-		} else if (cmd.equals("HTTP")) {
-			params.addProps("host", "port", "backlog", "timeout", "workers", "conf");
-			params.parse(args);
-			new IoForwardHTTP(params).listen(params);
-		} else if (cmd.equals("NAT")) {
-			params.addProps("host", "port", "backlog", "timeout", "workers", "conf");
-			params.parse(args);
-			new IoForwardNAT(params).listen(params);
+			File confFile = new File(params.get("conf"));
+
+			ListenProps props = new ListenProps();
+			{
+				props.backlog = params.getInt("backlog");
+				props.timeout = params.getInt("timeout");
+				props.workers = params.getInt("workers");
+			}
+
+			new IoForwardNAT(confFile, props);
+
 		} else {
-			throw new IllegalArgumentException("Command: " + cmd);
+			params.addProps("host", "port", "backlog", "timeout", "workers", "conf");
+			params.parse(args);
+			File confFile = new File(params.get("conf"));
+
+			ListenProps props = new ListenProps();
+			{
+				props.host = params.get("host");
+				props.port = params.getInt("port");
+				props.backlog = params.getInt("backlog");
+				props.timeout = params.getInt("timeout");
+				props.workers = params.getInt("workers");
+			}
+
+			if (cmd.equals("SOCKS")) {
+				new IoForwardSOCKS(confFile).listen(props);
+			} else if (cmd.equals("HTTP")) {
+				new IoForwardHTTP(confFile).listen(props);
+			} else {
+				throw new IllegalArgumentException("Command: " + cmd);
+			}
 		}
 	}
 
-	static class IoForwardNAT extends IoForward {
+	static class IoForwardNAT {
 
 		private final LiveFile conf;
-		private Map<String, String> natTable;
 
-		public IoForwardNAT(MainParams params) {
-			natTable = new HashMap<>();
+		public IoForwardNAT(final File confFile, final ListenProps params) {
 
-			this.conf = new LiveMapFile(new File(params.get("conf")), 10_000L) {
+			this.conf = new LiveMapFile(confFile, 10_000L) {
 				@Override
 				public void onMapUpdate(Map<String, String> map) {
-					IoForwardNAT.this.natTable = map;
+
+					for (Entry<String, String> entry : map.entrySet()) {
+						String[] srcPair = Text.splitPair(entry.getKey(), ':');
+						String[] dstPair = Text.splitPair(entry.getValue(), ':');
+
+						final String srcHost = srcPair[0];
+						final String dstHost = dstPair[0];
+						final int srcPort = Integer.parseInt(srcPair[1]);
+						final int dstPort = Integer.parseInt(dstPair[1]);
+
+						System.out.println("NAT " + srcHost + ":" + srcPort + " -> " + dstHost + ":" + dstPort);
+						final IoForward nat = newForwarder(dstHost, dstPort);
+
+						new Thread(new Runnable() {
+							@Override
+							public void run() {
+								ListenProps props = params.copy();
+								props.host = srcHost;
+								props.port = srcPort;
+								try {
+									nat.listen(props);
+								} catch (IOException exc) {
+									exc.printStackTrace();
+								}
+							}
+						}).start();
+					}
 				}
 			};
+
+			this.conf.poll();
 		}
 
-		@Override
-		public Socket determineTarget(Socket client, InputStream clientSrc, OutputStream clientDst) throws IOException {
-			this.conf.poll();
-
-			String hostportSrc = client.getLocalAddress().getHostAddress() + ":" + client.getLocalPort();
-			String hostportDst = natTable.get(hostportSrc);
-
-			if (hostportDst == null) {
-				throw new EOFException("no mapping for: " + hostportSrc);
-			}
-
-			String hostDst = Text.beforeLast(hostportDst, ':');
-			int portDst = Integer.parseInt(Text.afterLast(hostportDst, ':'));
-			return new Socket(hostDst, portDst);
+		IoForward newForwarder(final String targetHost, final int targetPort) {
+			return new IoForward() {
+				@Override
+				public Socket determineTarget(Socket client, InputStream clientSrc, OutputStream clientDst) throws IOException {
+					return new Socket(targetHost, targetPort);
+				}
+			};
 		}
 	}
 
@@ -148,10 +194,10 @@ public abstract class IoForward {
 		private final LiveFile conf;
 		private Map<String, String> hostTable;
 
-		public IoForwardHTTP(MainParams params) {
+		public IoForwardHTTP(File confFile) {
 			hostTable = new HashMap<>();
 
-			this.conf = new LiveMapFile(new File(params.get("conf")), 10_000L) {
+			this.conf = new LiveMapFile(confFile, 10_000L) {
 				@Override
 				public void onMapUpdate(Map<String, String> map) {
 					IoForwardHTTP.this.hostTable = map;
@@ -205,10 +251,10 @@ public abstract class IoForward {
 		private final LiveSetFile conf;
 		private Set<String> ipTable;
 
-		public IoForwardSOCKS(MainParams params) {
+		public IoForwardSOCKS(File confFile) {
 			ipTable = new HashSet<>();
 
-			this.conf = new LiveSetFile(new File(params.get("conf")), 10_000L) {
+			this.conf = new LiveSetFile(confFile, 10_000L) {
 				@Override
 				public void onSetUpdate(Set<String> set) {
 					IoForwardSOCKS.this.ipTable = set;
@@ -273,11 +319,6 @@ public abstract class IoForward {
 				byte[] auths = new byte[clientSrcData.readUnsignedByte()];
 				clientSrcData.readFully(auths);
 
-				System.out.println("SOCKS5 AUTHS");
-				for (int i = 0; i < auths.length; i++) {
-					System.out.println("\t" + auths[i]);
-				}
-
 				response.write((byte) 0x05);
 				response.write((byte) 0x00); // NO AUTH
 				clientDst.write(response.toByteArray());
@@ -293,7 +334,7 @@ public abstract class IoForward {
 					throw new EOFException("Unexpected header: version=" + version2 + ", command=" + command);
 				}
 
-				byte[] addr;
+				byte[] addr = null;
 				InetAddress iaddr;
 				try {
 					if (addressType == 1 || addressType == 4) {
@@ -304,58 +345,65 @@ public abstract class IoForward {
 						addr = new byte[clientSrcData.readUnsignedByte()];
 						clientSrcData.readFully(addr);
 						iaddr = InetAddress.getByName(Text.ascii(addr));
+						System.out.println("SOCKS5 resolved DNS: " + Text.ascii(addr) + " -> " + iaddr);
 					} else {
 						throw new EOFException("Unexpected address type: " + addressType);
 					}
-					System.out.println("SOCKS5 resolved: " + iaddr);
 				} catch (UnknownHostException exc) {
-					exc.printStackTrace();
+					System.out.println("SOCKS5 failed to resolve address: " + Text.ascii(addr));
 					addr = null;
 					iaddr = null;
 				}
 
 				int port = clientSrcData.readUnsignedShort();
 
-				if (iaddr == null) {
-					response.write((byte) 0x05);
-					response.write((byte) 0x04); // host unreachable
-					response.write((byte) 0x00); // reserved
-					response.write((byte) addressType); // addr-type
-					response.write((byte) 0x00); // NULL host
-					response.write((byte) 0x00); // NULL port hi
-					response.write((byte) 0x00); // NULL port lo
-					response.flush();
-					throw new EOFException();
-				}
-
-				Socket target;
 				try {
-					target = new Socket(iaddr, port);
-				} catch (IOException exc) {
-					response.write((byte) 0x05);
-					response.write((byte) 0x05); // connection refused
-					response.write((byte) 0x00); // reserved
-					response.write((byte) addressType); // addr-type
-					response.write((byte) 0x00); // NULL host
-					response.write((byte) 0x00); // NULL port hi
-					response.write((byte) 0x00); // NULL port lo
-					response.flush();
-					throw new EOFException();
-				}
-
-				{
-					response.write((byte) 0x05);
-					response.write((byte) 0x00); // succeeded
-					response.write((byte) 0x00); // reserved
-					response.write((byte) addressType); // addr-type
-					if (addressType == 3) {
-						response.write((byte) addr.length);
+					if (iaddr == null) {
+						response.write((byte) 0x05);
+						response.write((byte) 0x04); // host unreachable
+						response.write((byte) 0x00); // reserved
+						response.write((byte) addressType); // addr-type
+						response.write((byte) 0x00); // NULL host
+						response.write((byte) 0x00); // NULL port hi
+						response.write((byte) 0x00); // NULL port lo
+						response.flush();
+						throw new EOFException();
 					}
-					response.write(addr); // host
-					response.write((byte) (port >> 8)); // NULL port hi
-					response.write((byte) (port >> 0)); // NULL port lo
-					response.flush();
-					return target;
+
+					Socket target;
+					try {
+						target = new Socket(iaddr, port);
+					} catch (IOException exc) {
+						response.write((byte) 0x05);
+						response.write((byte) 0x05); // connection refused
+						response.write((byte) 0x00); // reserved
+						response.write((byte) addressType); // addr-type
+						response.write((byte) 0x00); // NULL host
+						response.write((byte) 0x00); // NULL port hi
+						response.write((byte) 0x00); // NULL port lo
+						response.flush();
+						throw new EOFException();
+					}
+
+					{
+						response.write((byte) 0x05);
+						response.write((byte) 0x00); // succeeded
+						response.write((byte) 0x00); // reserved
+						response.write((byte) addressType); // addr-type
+						if (addressType == 3) {
+							response.write((byte) addr.length);
+						}
+						response.write(addr); // host
+						response.write((byte) (port >> 8)); // NULL port hi
+						response.write((byte) (port >> 0)); // NULL port lo
+						response.flush();
+
+						return target;
+					}
+				} finally {
+					clientDst.write(response.toByteArray());
+					clientDst.flush();
+					response.reset();
 				}
 			}
 
@@ -365,11 +413,26 @@ public abstract class IoForward {
 
 	public abstract Socket determineTarget(Socket client, InputStream clientSrc, OutputStream clientDst) throws IOException;
 
-	public void listen(final MainParams params) throws IOException {
+	static class ListenProps implements Cloneable {
+		public String host;
+		public int port, workers, backlog, timeout;
 
-		System.out.println("listen: host: " + params.get("host") + ", port: " + params.getInt("port"));
+		public ListenProps copy() {
+			ListenProps copy = new ListenProps();
+			copy.host = host;
+			copy.port = port;
+			copy.workers = workers;
+			copy.backlog = backlog;
+			copy.timeout = timeout;
+			return copy;
+		}
+	}
 
-		final int timeout = params.getInt("timeout") * 1000;
+	public void listen(final ListenProps props) throws IOException {
+
+		System.out.println("listen: host: " + props.host + ", port: " + props.port);
+
+		final int timeout = props.timeout * 1000;
 
 		final TimeSortedQueue<Runnable> queue = new TimeSortedQueue<Runnable>();
 
@@ -382,19 +445,24 @@ public abstract class IoForward {
 
 		//
 
-		final ExecutorService pool = TcpServer.pool(params.getInt("workers"), 30_000, 48 * 1024);
+		final ExecutorService pool = TcpServer.pool(props.workers, 30_000, 48 * 1024);
 
-		TcpServer.listen(new ServerSocket(params.getInt("port"), params.getInt("backlog"), InetAddress.getByName(params.get("host"))), new Callback<Socket>() {
+		TcpServer.listen(new ServerSocket(props.port, props.backlog, InetAddress.getByName(props.host)), new Callback<Socket>() {
 			@Override
 			public void callback(final Socket client) {
 				Socket target = null;
 
 				try {
 					final InputStream clientSrc = client.getInputStream();
-					final OutputStream clientDst = client.getOutputStream();
+					final OutputStream clientDst;
 
-					client.setSoTimeout(10_000);					
-					
+					if (false)
+						clientDst = client.getOutputStream();
+					else
+						clientDst = new SharingOutputStream(client.getOutputStream(), new BufferedOutputStream(new FileOutputStream(new File("C:/mounts/socks5-proxy/" + Text.generateRandomCode(64) + ".dat"))));
+
+					client.setSoTimeout(10_000);
+
 					target = determineTarget(client, clientSrc, clientDst);
 					if (target == null) {
 						throw new NullPointerException();

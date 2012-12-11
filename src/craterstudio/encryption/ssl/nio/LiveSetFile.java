@@ -16,7 +16,6 @@ public abstract class LiveSetFile extends LiveFile {
 	public final void onUpdate(byte[] data) {
 		Set<String> set = new HashSet<>();
 		for (String line : Text.splitOnLines(Text.utf8(data))) {
-			System.out.println(line);
 			if (!(line = Text.beforeIfAny(line, '#').trim()).isEmpty()) {
 				set.add(line);
 			}
