@@ -6,6 +6,7 @@ package craterstudio.net.smtp;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -89,7 +90,7 @@ public class Smtp {
 			throw new IllegalStateException("failed on 'HELO' command");
 	}
 
-	public final void sendRaw(SmtpMail mail, String rcpt, byte[] raw) throws IOException {
+	public final void sendRaw(SmtpMail mail, String rcpt, InputStream in) throws IOException {
 		mail.verifyRaw();
 
 		this.writeln("MAIL FROM: <" + mail.getFrom().address + ">");
@@ -105,9 +106,9 @@ public class Smtp {
 			throw new IllegalStateException("failed on 'DATA' command");
 
 		if (this.verbose) {
-			System.out.println("SMTP -->> RAW [" + raw.length + " bytes]");
+			System.out.println("SMTP -->> RAW [??? bytes]");
 		}
-		this.output.write(raw);
+		Streams.transfer(in, this.output, false, false);
 		this.output.flush();
 
 		// "\r\n.\r\n"

@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import craterstudio.data.TimeSortedQueue;
 import craterstudio.func.Callback;
+import craterstudio.io.FileUtil;
 import craterstudio.io.Streams;
 import craterstudio.io.TcpServer;
 import craterstudio.misc.MainParams;
@@ -41,11 +42,21 @@ import craterstudio.util.HighLevel;
 public abstract class IoForward {
 
 	public static ThreadMXBean THREAD_MBEAN = ManagementFactory.getThreadMXBean();
+	public static File TRACK_DATA_DIR = null;
 
 	public static void main(String[] args) throws IOException {
 
 		if (args.length == 0) {
-			System.out.println("Usage: [SOCKS|HTTP|NAT]");
+			System.out.println("Usage: [SOCKS|HTTP|NAT] --track <path>");
+			System.out.println();
+			System.out.println("Usage: SOCKS --[host,port,backlog,timeout,workers,conf]");
+			System.out.println("\t\tHTTP.conf {accepted_client_ip}*");
+			System.out.println();
+			System.out.println("Usage: HTTP  --[host,port,backlog,timeout,workers,conf]");
+			System.out.println("\t\tHTTP.conf {http_host:http_port=target_host:target_port}*");
+			System.out.println();
+			System.out.println("Usage: NAT   --[backlog,timeout,workers,conf]");
+			System.out.println("\t\tNAT.conf {listen_host:listen_port=target_host:target_port}*");
 			return;
 		}
 
@@ -98,10 +109,15 @@ public abstract class IoForward {
 		String cmd = args[0];
 		args = Arrays.copyOfRange(args, 1, args.length);
 		MainParams params = new MainParams();
+		params.addProp("track");
 
 		if (cmd.equals("NAT")) {
 			params.addProps("backlog", "timeout", "workers", "conf");
 			params.parse(args);
+			if (params.isSet("track")) {
+				TRACK_DATA_DIR = new File(params.get("track"));
+				System.out.println("Storing tracked data in: " + TRACK_DATA_DIR);
+			}
 			File confFile = new File(params.get("conf"));
 
 			ListenProps props = new ListenProps();
@@ -116,6 +132,10 @@ public abstract class IoForward {
 		} else {
 			params.addProps("host", "port", "backlog", "timeout", "workers", "conf");
 			params.parse(args);
+			if (params.isSet("track")) {
+				TRACK_DATA_DIR = new File(params.get("track"));
+				System.out.println("Storing tracked data in: " + TRACK_DATA_DIR);
+			}
 			File confFile = new File(params.get("conf"));
 
 			ListenProps props = new ListenProps();
@@ -130,7 +150,7 @@ public abstract class IoForward {
 			if (cmd.equals("SOCKS")) {
 				new IoForwardSOCKS(confFile).listen(props);
 			} else if (cmd.equals("HTTP")) {
-				new IoForwardHTTP(confFile).listen(props);
+				new IoForwardHTTPLoadBalancer(confFile).listen(props);
 			} else {
 				throw new IllegalArgumentException("Command: " + cmd);
 			}
@@ -189,18 +209,18 @@ public abstract class IoForward {
 		}
 	}
 
-	static class IoForwardHTTP extends IoForward {
+	static class IoForwardHTTPLoadBalancer extends IoForward {
 
 		private final LiveFile conf;
 		private Map<String, String> hostTable;
 
-		public IoForwardHTTP(File confFile) {
+		public IoForwardHTTPLoadBalancer(File confFile) {
 			hostTable = new HashMap<>();
 
 			this.conf = new LiveMapFile(confFile, 10_000L) {
 				@Override
 				public void onMapUpdate(Map<String, String> map) {
-					IoForwardHTTP.this.hostTable = map;
+					IoForwardHTTPLoadBalancer.this.hostTable = map;
 				}
 			};
 		}
@@ -257,6 +277,7 @@ public abstract class IoForward {
 			this.conf = new LiveSetFile(confFile, 10_000L) {
 				@Override
 				public void onSetUpdate(Set<String> set) {
+					System.out.println("Allow client addresses: " + set);
 					IoForwardSOCKS.this.ipTable = set;
 				}
 			};
@@ -266,12 +287,14 @@ public abstract class IoForward {
 		public Socket determineTarget(Socket client, InputStream clientSrc, OutputStream clientDst) throws IOException {
 			this.conf.poll();
 			if (!ipTable.contains(client.getInetAddress().getHostAddress())) {
-				throw new EOFException("Unexpected client: " + client.getInetAddress().getHostAddress());
+				System.out.println("Rejected client: " + client.getInetAddress().getHostAddress());
+				throw new EOFException();
 			}
 
 			final DataInputStream clientSrcData = new DataInputStream(clientSrc);
 
 			final int version = clientSrcData.readUnsignedByte();
+			System.out.println("SOCKS" + version + " " + client);
 
 			final ByteArrayOutputStream response = new ByteArrayOutputStream();
 
@@ -298,7 +321,12 @@ public abstract class IoForward {
 					throw new EOFException("Unknown host");
 				}
 
-				Socket target = new Socket(iaddr, port);
+				Socket target;
+				try {
+					target = new Socket(iaddr, port);
+				} catch (IOException exc) {
+					throw new IOException("failed to connect to " + iaddr + " / " + Arrays.toString(addr), exc);
+				}
 
 				response.write((byte) 0x00);
 				response.write((byte) 0x5a); // ACCEPTED
@@ -356,6 +384,7 @@ public abstract class IoForward {
 				}
 
 				int port = clientSrcData.readUnsignedShort();
+				System.out.println("SOCKS5 -> " + iaddr + ":" + port);
 
 				try {
 					if (iaddr == null) {
@@ -367,7 +396,7 @@ public abstract class IoForward {
 						response.write((byte) 0x00); // NULL port hi
 						response.write((byte) 0x00); // NULL port lo
 						response.flush();
-						throw new EOFException();
+						throw new EOFException("host unreachable: " + Text.ascii(addr));
 					}
 
 					Socket target;
@@ -382,7 +411,7 @@ public abstract class IoForward {
 						response.write((byte) 0x00); // NULL port hi
 						response.write((byte) 0x00); // NULL port lo
 						response.flush();
-						throw new EOFException();
+						throw new EOFException("connection refused: " + Text.ascii(addr));
 					}
 
 					{
@@ -407,7 +436,7 @@ public abstract class IoForward {
 				}
 			}
 
-			throw new EOFException();
+			throw new EOFException("version: " + version);
 		}
 	}
 
@@ -454,12 +483,7 @@ public abstract class IoForward {
 
 				try {
 					final InputStream clientSrc = client.getInputStream();
-					final OutputStream clientDst;
-
-					if (false)
-						clientDst = client.getOutputStream();
-					else
-						clientDst = new SharingOutputStream(client.getOutputStream(), new BufferedOutputStream(new FileOutputStream(new File("C:/mounts/socks5-proxy/" + Text.generateRandomCode(64) + ".dat"))));
+					OutputStream clientDst = client.getOutputStream();
 
 					client.setSoTimeout(10_000);
 
@@ -480,9 +504,24 @@ public abstract class IoForward {
 
 					// ---
 
+					if (TRACK_DATA_DIR != null) {
+						String rndm = Text.generateRandomCode(64);
+						File metaFile = new File(TRACK_DATA_DIR, rndm + ".txt");
+						File dataFile = new File(TRACK_DATA_DIR, rndm + ".dat");
+						clientDst = new SharingOutputStream(clientDst, new BufferedOutputStream(new FileOutputStream(dataFile)));
+
+						String meta = client.getInetAddress().getHostAddress() + " @ " + client.getPort();
+						FileUtil.writeFile(metaFile, Text.utf8(meta));
+					}
+
 					pump(id, timeout, pool, queue, client, clientSrc, clientDst, target, target.getInputStream(), target.getOutputStream());
 
 				} catch (IOException exc) {
+					if (exc.getMessage() != null && !exc.getMessage().equals("Connection reset")) {
+						exc.printStackTrace();
+					}
+					System.out.println("Disconnected " + client + " -> " + target);
+				} finally {
 					Streams.safeClose(target);
 					Streams.safeClose(client);
 				}

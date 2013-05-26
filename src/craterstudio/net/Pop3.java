@@ -4,8 +4,8 @@
 package craterstudio.net;
 
 import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.Writer;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -64,7 +64,7 @@ public class Pop3 {
 	public final void login(String user, String pass) throws IOException {
 		this.user = null;
 		this.pass = null;
-		
+
 		this.writeln("USER " + user);
 		String line1 = this.readLine();
 		if (!line1.startsWith("+OK"))
@@ -131,22 +131,19 @@ public class Pop3 {
 		return Text.split(response, ' ')[2];
 	}
 
-	public final byte[] retr(int msg) throws IOException {
+	public final void retr(int msg, OutputStream out) throws IOException {
 		this.writeln("RETR " + msg);
 		String response = this.readLine();
 		if (!response.startsWith("+OK"))
 			throw new IllegalStateException("error response: " + response);
 
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		while (true) {
 			byte[] line = BinaryLineReader.readLineInc(this.in, 64 * 1024);
 			if (line.length == ".\r\n".length() && Text.ascii(line).equals(".\r\n")) {
 				break;
 			}
-			baos.write(line);
+			out.write(line);
 		}
-
-		return baos.toByteArray();
 	}
 
 	/**
