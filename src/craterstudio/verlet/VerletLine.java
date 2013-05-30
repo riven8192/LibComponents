@@ -50,7 +50,7 @@ public class VerletLine
       for (int i = 0; i < this.many.length; i++)
       {
          this.many[i] = new VerletSphere(radius);
-         float at = EasyMath.lerp((float) i / (this.many.length - 1), radius, d - radius) / d;
+         float at = EasyMath.lerp(radius, d - radius, (float) i / (this.many.length - 1)) / d;
          this.many[i].particle.setPosition(VecMath.lerp(at, a, b));
       }
    }

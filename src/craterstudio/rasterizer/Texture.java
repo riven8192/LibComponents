@@ -149,17 +149,17 @@ public class Texture
 
       // interpolate
 
-      int rTop = (int) EasyMath.lerp(fx, (rgb00 >> s2) & 0xFF, (rgb10 >> s2) & 0xFF);
-      int gTop = (int) EasyMath.lerp(fx, (rgb00 >> s1) & 0xFF, (rgb10 >> s1) & 0xFF);
-      int bTop = (int) EasyMath.lerp(fx, (rgb00 >> s0) & 0xFF, (rgb10 >> s0) & 0xFF);
+      int rTop = (int) EasyMath.lerp((rgb00 >> s2) & 0xFF, (rgb10 >> s2) & 0xFF, fx);
+      int gTop = (int) EasyMath.lerp((rgb00 >> s1) & 0xFF, (rgb10 >> s1) & 0xFF, fx);
+      int bTop = (int) EasyMath.lerp((rgb00 >> s0) & 0xFF, (rgb10 >> s0) & 0xFF, fx);
 
-      int rBot = (int) EasyMath.lerp(fx, (rgb01 >> s2) & 0xFF, (rgb11 >> s2) & 0xFF);
-      int gBot = (int) EasyMath.lerp(fx, (rgb01 >> s1) & 0xFF, (rgb11 >> s1) & 0xFF);
-      int bBot = (int) EasyMath.lerp(fx, (rgb01 >> s0) & 0xFF, (rgb11 >> s0) & 0xFF);
+      int rBot = (int) EasyMath.lerp((rgb01 >> s2) & 0xFF, (rgb11 >> s2) & 0xFF, fx);
+      int gBot = (int) EasyMath.lerp((rgb01 >> s1) & 0xFF, (rgb11 >> s1) & 0xFF, fx);
+      int bBot = (int) EasyMath.lerp((rgb01 >> s0) & 0xFF, (rgb11 >> s0) & 0xFF, fx);
 
-      int rMid = (int) EasyMath.lerp(fy, rTop, rBot);
-      int gMid = (int) EasyMath.lerp(fy, gTop, gBot);
-      int bMid = (int) EasyMath.lerp(fy, bTop, bBot);
+      int rMid = (int) EasyMath.lerp(rTop, rBot, fy);
+      int gMid = (int) EasyMath.lerp(gTop, gBot, fy);
+      int bMid = (int) EasyMath.lerp(bTop, bBot, fy);
 
       //
 
