@@ -140,7 +140,7 @@ Odd World
 
 
 ## Scheduling hints
-##### (this language's *raison d'être*)
+##### (this crude language's *raison d'être*)
 ```
 Hello World
 
@@ -221,4 +221,38 @@ CALL a
 Hello World
 Odd World
 Hi World
+```
+
+## Example program
+```
+SLEEP 3s
+
+
+# let passengers leave
+WHILE bus.hasOutboundPassenger() DO
+	bus.makeOutboundPassengerLeaveBus()
+	SLEEP 500ms
+END
+
+
+# let passengers enter
+WHILE NOT bus.shouldDepart() DO
+	IF bus.hasInboundPassenger() THEN
+		bus.makeInboundPassengerEnterBus()
+	END
+	
+	SLEEP 0.25s
+END
+
+
+SLEEP 2s
+
+
+# travel!
+bus.depart()
+WAIT             # resume script when game determines bus has reached destination
+bus.onArrive()
+
+
+LOOP
 ```
