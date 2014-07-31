@@ -1,0 +1,39 @@
+BEGIN
+
+	onArrive()
+	
+	# let passengers leave
+	BEGIN
+		IF NOT has_outbound_passenger THEN BREAK
+		
+		outboundPassengerLeavesBus()		
+		SLEEP 1000ms
+		
+		REPEAT
+	END
+	
+	
+	# let passengers enter
+	BEGIN		
+		IF NOT has_time_before_departure THEN BREAK
+		
+		SLEEP 1000ms
+		
+		
+		IF NOT has_inbound_passenger THEN REPEAT
+		
+		inboundPassengerEntersBus()		
+		SLEEP 1000ms
+		
+		REPEAT
+	END
+	
+	
+	# depart
+	depart()
+	YIELD
+	# .... travel
+	
+	
+	REPEAT
+END
