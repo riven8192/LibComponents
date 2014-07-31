@@ -18,8 +18,8 @@ public class BusAI extends AbstractContext
 			throw new NullPointerException();
 		this.bus = bus;
 
-		eval.define("DOORS_OPEN_DURATION", Long.valueOf(3_000));
-		eval.define("DOORS_CLOSE_DURATION", Long.valueOf(3_000));
+		eval.define("DOORS_OPEN_DURATION", Long.valueOf(1_000));
+		eval.define("DOORS_CLOSE_DURATION", Long.valueOf(1_000));
 		eval.define("PASSENGER_ENTER_DURATION", Long.valueOf(1_000));
 		eval.define("PASSENGER_LEAVE_DURATION", Long.valueOf(1_000));
 	}

@@ -1,11 +1,11 @@
 SLEEP DOORS_OPEN_DURATION
 
+
 # let passengers leave
 WHILE bus.hasOutboundPassenger() DO
 	bus.outboundPassengerLeavesBus()
 	SLEEP PASSENGER_LEAVE_DURATION
 END
-
 
 
 # let passengers enter
@@ -18,16 +18,13 @@ WHILE NOT bus.shouldDepart() DO
 END
 
 
-
 SLEEP DOORS_CLOSE_DURATION
-
 
 
 # travel!
 bus.depart()
 WAIT
 bus.onArrive()
-
 
 
 LOOP

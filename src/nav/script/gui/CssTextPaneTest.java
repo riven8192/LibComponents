@@ -7,16 +7,12 @@ import javax.swing.JFrame;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
-public class CssTextPaneTest
-{
-	public static void main(String[] args)
-	{
-		try
-		{
+public class CssTextPaneTest {
+	public static void main(String[] args) {
+		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		}
-		catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e)
-		{
+		catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
 			e.printStackTrace();
 		}
 
@@ -45,7 +41,7 @@ public class CssTextPaneTest
 		pane.activateUndoRedo();
 		pane.activateAutoRestyle();
 
-		JFrame frame = new JFrame("CSS");
+		JFrame frame = new JFrame("CrudeScript syntax highlighter");
 		frame.getContentPane().setLayout(new BorderLayout());
 		frame.getContentPane().add(pane.wrapInScrollPane(640, 480));
 		frame.setResizable(true);
