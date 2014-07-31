@@ -1,39 +1,33 @@
-BEGIN
+SLEEP DOORS_OPEN_DURATION
 
-	onArrive()
-	
-	# let passengers leave
-	BEGIN
-		IF NOT has_outbound_passenger THEN BREAK
-		
-		outboundPassengerLeavesBus()		
-		SLEEP 1000ms
-		
-		REPEAT
-	END
-	
-	
-	# let passengers enter
-	BEGIN		
-		IF NOT has_time_before_departure THEN BREAK
-		
-		SLEEP 1000ms
-		
-		
-		IF NOT has_inbound_passenger THEN REPEAT
-		
-		inboundPassengerEntersBus()		
-		SLEEP 1000ms
-		
-		REPEAT
-	END
-	
-	
-	# depart
-	depart()
-	YIELD
-	# .... travel
-	
-	
-	REPEAT
+# let passengers leave
+WHILE bus.hasOutboundPassenger() DO
+	bus.outboundPassengerLeavesBus()
+	SLEEP PASSENGER_LEAVE_DURATION
 END
+
+
+
+# let passengers enter
+WHILE NOT bus.shouldDepart() DO
+	IF bus.hasInboundPassenger() THEN
+		bus.inboundPassengerEntersBus()
+	END
+	
+	SLEEP PASSENGER_ENTER_DURATION
+END
+
+
+
+SLEEP DOORS_CLOSE_DURATION
+
+
+
+# travel!
+bus.depart()
+WAIT
+bus.onArrive()
+
+
+
+LOOP

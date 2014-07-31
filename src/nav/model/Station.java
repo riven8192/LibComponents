@@ -6,38 +6,52 @@ import java.util.List;
 
 import nav.util.Vec2;
 
-public class Station {
+public class Station
+{
 	public final String id;
+	public final Vec2 pos;
 
-	public Station(String id) {
+	public Station(String id, Vec2 pos)
+	{
+		if(id == null)
+			throw new NullPointerException();
+		if(pos == null)
+			throw new NullPointerException();
 		this.id = id;
-	}
-
-	public final Vec2 pos = new Vec2();
-
-	@Override
-	public String toString() {
-		return "Station[id=" + id + "]";
+		this.pos = pos;
 	}
 
 	private final List<Passenger> passengers = new ArrayList<>();
 
-	public List<Passenger> passengers() {
+	public List<Passenger> passengers()
+	{
 		return Collections.unmodifiableList(new ArrayList<Passenger>(passengers));
 	}
 
-	public void enter(Passenger passenger) {
-		if (passengers.indexOf(passenger) != -1)
+	void onEnter(Passenger passenger)
+	{
+		if(passengers.indexOf(passenger) != -1)
 			throw new IllegalStateException();
 
 		passengers.add(passenger);
+
+		System.out.println("" + passenger + " enters " + this + "");
 	}
 
-	public void leave(Passenger passenger) {
-		if (passengers.indexOf(passenger) == -1)
+	void onLeave(Passenger passenger)
+	{
+		if(passengers.indexOf(passenger) == -1)
 			throw new IllegalStateException();
 
-		if (!passengers.remove(passenger))
+		if(!passengers.remove(passenger))
 			throw new IllegalStateException();
+
+		System.out.println("" + passenger + " leaves " + this + "");
+	}
+
+	@Override
+	public String toString()
+	{
+		return this.getClass().getSimpleName() + "#" + id;
 	}
 }

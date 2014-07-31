@@ -1,5 +1,6 @@
 package nav.script;
 
-public enum State {
-   RUNNING, SLEEPING, TERMINATED, HALTED, RAISED, YIELDED
+public enum State
+{
+	RUNNING, SLEEPING, WAITING, TERMINATED, HALTED, RAISED, YIELDED
 }

@@ -17,54 +17,52 @@ import nav.model.Game;
 import nav.model.Passenger;
 import nav.model.Route;
 import nav.model.Station;
+import nav.model.TravelPlan;
 import nav.model.World;
+import nav.model.TravelPlan.Travel;
+import nav.util.Clock;
+import nav.util.Vec2;
 
 public class NavMain {
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
+		Station a = new Station("1", new Vec2(100, 0));
+		Station b = new Station("2", new Vec2(0, 100));
+		Station c = new Station("3", new Vec2(0, 0));
 
+		Passenger p1 = new Passenger("1", b);
+		//Passenger p2 = new Passenger(a);
+		//Passenger p3 = new Passenger(b);
+
+		Route route = new Route();
+		route.stations.add(a);
+		route.stations.add(b);
+		route.stations.add(c);
+
+		Bus bus = new Bus("1", route);
+		bus.capacity = 100;
+		bus.velocity = 10.0f;
+		bus.doDepartAt = Clock.millis() + 8000;
+
+		TravelPlan plan = new TravelPlan();
+		plan.addTravel(new Travel(route, b, a));
+		p1.setTravelPlan(plan);
+		p1.start();
+
+		bus.start();
+
+		while (true) {
+			Game.tick();
+
+			Thread.sleep(1000);
+		}
+	}
+
+	public static void main2(String[] args) {
 		final int dim = 512;
 		final Random rndm = new Random(2304589);
 
-		final World world = new World();
-		for (int i = 0; i < 13; i++) {
-			Station station = new Station("S" + i);
-			station.pos.x = rndm.nextFloat() * dim;
-			station.pos.y = rndm.nextFloat() * dim;
-
-			world.stations.add(station);
-		}
-
-		for (int i = 0; i < 100; i++) {
-			Passenger passenger = new Passenger();
-			passenger.home = world.stations.get(rndm.nextInt(world.stations.size()));
-			do {
-				passenger.work = world.stations.get(rndm.nextInt(world.stations.size()));
-			} while (passenger.home == passenger.work);
-			passenger.home.enter(passenger);
-		}
-
-		final Route route = new Route();
-		route.stations.add(world.stations.get(7));
-		route.stations.add(world.stations.get(3));
-		route.stations.add(world.stations.get(8));
-		route.stations.add(world.stations.get(11));
-		route.stations.add(world.stations.get(6));
-		route.stations.add(world.stations.get(4));
-		route.stations.add(world.stations.get(2));
-		route.stations.add(world.stations.get(12));
-		route.stations.add(world.stations.get(10));
-		route.stations.add(world.stations.get(9));
-		{
-			Bus bus = new Bus(route);
-			bus.capacity = 50;
-			bus.velocity = 150.0f;// m/s
-			bus.onArrive(route.stations.get(0));
-		}	{
-			Bus bus = new Bus(route);
-			bus.capacity = 30;
-			bus.velocity = 10.0f;// m/s
-			bus.onArrive(route.stations.get(0));
-		}
+		final World world = null;
+		final Route route = null;
 
 		//
 
@@ -73,7 +71,7 @@ public class NavMain {
 				super.paintComponent(g);
 
 				g.setColor(Color.BLACK);
-				for (Station station : world.stations) {
+				for(Station station : world.stations) {
 					int x = (int) station.pos.x;
 					int y = (int) station.pos.y;
 					g.fillOval(x - 3, y - 3, 7, 7);
@@ -81,7 +79,7 @@ public class NavMain {
 				}
 
 				g.setColor(Color.BLUE);
-				for (int i = 1; i < route.stations.size(); i++) {
+				for(int i = 1; i < route.stations.size(); i++) {
 					Station s1 = route.stations.get(i - 1);
 					Station s2 = route.stations.get(i - 0);
 
@@ -89,12 +87,13 @@ public class NavMain {
 				}
 
 				g.setColor(Color.RED);
-				for (Bus bus : route.buses) {
+				for(Bus bus : route.buses) {
 					int x, y;
-					if (bus.departedAt == -1) {
+					if(bus.departedAt == -1) {
 						x = (int) bus.at.pos.x;
 						y = (int) bus.at.pos.y;
-					} else {
+					}
+					else {
 						x = (int) ((bus.at.pos.x + bus.to.pos.x) * 0.5f);
 						y = (int) ((bus.at.pos.y + bus.to.pos.y) * 0.5f);
 					}
