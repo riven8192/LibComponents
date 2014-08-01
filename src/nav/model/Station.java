@@ -6,13 +6,11 @@ import java.util.List;
 
 import nav.util.Vec2;
 
-public class Station
-{
+public class Station {
 	public final String id;
 	public final Vec2 pos;
 
-	public Station(String id, Vec2 pos)
-	{
+	public Station(String id, Vec2 pos) {
 		if(id == null)
 			throw new NullPointerException();
 		if(pos == null)
@@ -23,13 +21,11 @@ public class Station
 
 	private final List<Passenger> passengers = new ArrayList<>();
 
-	public List<Passenger> passengers()
-	{
+	public List<Passenger> passengers() {
 		return Collections.unmodifiableList(new ArrayList<Passenger>(passengers));
 	}
 
-	void onEnter(Passenger passenger)
-	{
+	void onEnter(Passenger passenger) {
 		if(passengers.indexOf(passenger) != -1)
 			throw new IllegalStateException();
 
@@ -38,8 +34,7 @@ public class Station
 		System.out.println("" + passenger + " enters " + this + "");
 	}
 
-	void onLeave(Passenger passenger)
-	{
+	void onLeave(Passenger passenger) {
 		if(passengers.indexOf(passenger) == -1)
 			throw new IllegalStateException();
 
@@ -50,8 +45,7 @@ public class Station
 	}
 
 	@Override
-	public String toString()
-	{
+	public String toString() {
 		return this.getClass().getSimpleName() + "#" + id;
 	}
 }

@@ -11,7 +11,7 @@ public class Game {
 
 		while (true) {
 			Runnable task = eventQueue.poll(now);
-			if (task == null)
+			if(task == null)
 				break;
 			task.run();
 		}

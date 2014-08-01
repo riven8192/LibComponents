@@ -3,16 +3,13 @@ package nav.model;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TravelPlan
-{
-	public static class Travel
-	{
+public class TravelPlan {
+	public static class Travel {
 		public final Route route;
 		public final Station enterBusAt;
 		public final Station departBusAt;
 
-		public Travel(Route route, Station enterBusAt, Station departBusAt)
-		{
+		public Travel(Route route, Station enterBusAt, Station departBusAt) {
 			if(route == null)
 				throw new NullPointerException();
 			if(enterBusAt == null)
@@ -35,21 +32,18 @@ public class TravelPlan
 	private int travelIndex;
 	private boolean inTravel;
 
-	public void addNextStation(Route route, Station departBusAt)
-	{
+	public void addNextStation(Route route, Station departBusAt) {
 		if(travels.isEmpty())
 			throw new IllegalStateException();
 		Travel last = travels.get(travels.size() - 1);
 		this.addTravel(new Travel(route, last.departBusAt, departBusAt));
 	}
 
-	public void addTravel(Travel travel)
-	{
+	public void addTravel(Travel travel) {
 		if(this.hasFinished())
 			throw new IllegalStateException();
 
-		if(!travels.isEmpty())
-		{
+		if(!travels.isEmpty()) {
 			Travel last = travels.get(travels.size() - 1);
 			if(travel.enterBusAt != last.departBusAt)
 				throw new IllegalStateException();
@@ -57,13 +51,11 @@ public class TravelPlan
 		travels.add(travel);
 	}
 
-	public boolean hasFinished()
-	{
+	public boolean hasFinished() {
 		return travelIndex == -1;
 	}
 
-	public boolean shouldEnterBusAt(Bus bus, Station station)
-	{
+	public boolean shouldEnterBusAt(Bus bus, Station station) {
 		if(inTravel)
 			throw new IllegalStateException();
 		if(this.hasFinished())
@@ -76,16 +68,14 @@ public class TravelPlan
 		return false;
 	}
 
-	public void onEnterBus(Bus bus, Station station)
-	{
+	public void onEnterBus(Bus bus, Station station) {
 		if(!this.shouldEnterBusAt(bus, station))
 			throw new IllegalStateException();
 
 		inTravel = true;
 	}
 
-	public boolean shouldDepartBusAt(Bus bus, Station station)
-	{
+	public boolean shouldDepartBusAt(Bus bus, Station station) {
 		if(!inTravel)
 			throw new IllegalStateException();
 		if(this.hasFinished())
@@ -98,8 +88,7 @@ public class TravelPlan
 		return false;
 	}
 
-	public void onDepartBus(Bus bus, Station station)
-	{
+	public void onDepartBus(Bus bus, Station station) {
 		if(!this.shouldDepartBusAt(bus, station))
 			throw new IllegalStateException();
 

@@ -2,16 +2,14 @@ package nav.model;
 
 import nav.Scripts;
 
-public class Passenger
-{
+public class Passenger {
 	public final String id;
 	private Station inStation;
 	private Bus inBus;
 	private TravelPlan travelPlan;
 	private final PassengerAI ai;
 
-	public Passenger(String id, Station station)
-	{
+	public Passenger(String id, Station station) {
 		if(id == null)
 			throw new NullPointerException();
 		if(station == null)
@@ -22,13 +20,11 @@ public class Passenger
 		ai = new PassengerAI(this, Scripts.getPassengerScript());
 	}
 
-	public void start()
-	{
+	public void start() {
 		ai.start();
 	}
 
-	public void setTravelPlan(TravelPlan plan)
-	{
+	public void setTravelPlan(TravelPlan plan) {
 		if(plan == null)
 			throw new NullPointerException();
 		if(travelPlan != null)
@@ -36,8 +32,7 @@ public class Passenger
 		travelPlan = plan;
 	}
 
-	public boolean shouldEnterBusAt(Bus bus, Station station)
-	{
+	public boolean shouldEnterBusAt(Bus bus, Station station) {
 		if(inStation == null)
 			throw new IllegalStateException();
 		if(inBus != null)
@@ -50,16 +45,14 @@ public class Passenger
 		return travelPlan.shouldEnterBusAt(bus, station);
 	}
 
-	public boolean tryEnterBusAt(Bus bus, Station station)
-	{
+	public boolean tryEnterBusAt(Bus bus, Station station) {
 		if(bus.isFull())
 			return false;
 
 		if(!this.shouldEnterBusAt(bus, station))
 			throw new IllegalStateException();
 
-		if(bus.onTryEnter(this))
-		{
+		if(bus.onTryEnter(this)) {
 			inBus = bus;
 			inStation.onLeave(this);
 			travelPlan.onEnterBus(bus, station);
@@ -69,8 +62,7 @@ public class Passenger
 		return false;
 	}
 
-	public boolean shouldDepartBusAt(Bus bus, Station station)
-	{
+	public boolean shouldDepartBusAt(Bus bus, Station station) {
 		if(inStation != null)
 			throw new IllegalStateException();
 		if(inBus == null)
@@ -85,8 +77,7 @@ public class Passenger
 		return travelPlan.shouldDepartBusAt(bus, station);
 	}
 
-	public void departBusAt(Bus bus, Station station)
-	{
+	public void departBusAt(Bus bus, Station station) {
 		if(!this.shouldDepartBusAt(bus, station))
 			throw new IllegalStateException();
 
@@ -97,21 +88,18 @@ public class Passenger
 		inStation = station;
 
 		travelPlan.onDepartBus(bus, station);
-		if(travelPlan.hasFinished())
-		{
+		if(travelPlan.hasFinished()) {
 			this.onFinishedTravelPlan();
 			travelPlan = null;
 		}
 	}
 
-	public void onFinishedTravelPlan()
-	{
+	public void onFinishedTravelPlan() {
 		ai.call("onReachedDestination");
 	}
 
 	@Override
-	public String toString()
-	{
+	public String toString() {
 		return this.getClass().getSimpleName() + "#" + id;
 	}
 }

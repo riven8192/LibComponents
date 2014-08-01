@@ -6,12 +6,10 @@ import nav.script.AbstractContext;
 import nav.script.BasicScript.Block;
 import nav.script.State;
 
-public class BusAI extends AbstractContext
-{
+public class BusAI extends AbstractContext {
 	private final Bus bus;
 
-	public BusAI(Bus bus, Block script)
-	{
+	public BusAI(Bus bus, Block script) {
 		super(script);
 
 		if(bus == null)
@@ -25,8 +23,7 @@ public class BusAI extends AbstractContext
 	}
 
 	@Override
-	public boolean query(String var)
-	{
+	public boolean query(String var) {
 		if(var.equals("bus.shouldDepart()"))
 			return bus.shouldDepart();
 		if(var.equals("bus.hasOutboundPassenger()"))
@@ -37,19 +34,18 @@ public class BusAI extends AbstractContext
 	}
 
 	@Override
-	public State signal(String[] words)
-	{
-		System.out.println("BUS SIGNAL " + Arrays.toString(words));
-		if(words[0].equals("bus.onArrive()"))
+	public State signal(String text) {
+		System.out.println("BUS SIGNAL " + text);
+		if(text.equals("bus.onArrive()"))
 			bus.onArrive();
-		else if(words[0].equals("bus.depart()"))
+		else if(text.equals("bus.depart()"))
 			bus.depart();
-		else if(words[0].equals("bus.outboundPassengerLeavesBus()"))
+		else if(text.equals("bus.outboundPassengerLeavesBus()"))
 			bus.outboundPassengerLeavesBus();
-		else if(words[0].equals("bus.inboundPassengerEntersBus()"))
+		else if(text.equals("bus.inboundPassengerEntersBus()"))
 			bus.inboundPassengerEntersBus();
 		else
-			throw new IllegalStateException("signal: " + Arrays.toString(words) + "");
+			throw new IllegalStateException("signal: " + text + "");
 		return State.RUNNING;
 	}
 }

@@ -1,41 +1,34 @@
 package nav.script;
 
-import java.util.Arrays;
-
 import nav.model.Game;
 import nav.script.BasicScript.Block;
 import nav.util.Clock;
 
-public abstract class AbstractContext implements Context, Runnable
-{
+public abstract class AbstractContext implements Context, Runnable {
 	private final Block script;
 	protected Eval eval;
 	private State state;
 
-	public AbstractContext(Block script)
-	{
+	public AbstractContext(Block script) {
 		if(script == null)
 			throw new NullPointerException();
 		this.script = script;
 		this.eval = script.eval(this);
 	}
 
-	public void start()
-	{
+	public void start() {
 		if(state != null)
 			throw new IllegalStateException();
 		Game.eventQueue.insert(Clock.millis(), this);
 	}
 
-	public void resume()
-	{
+	public void resume() {
 		if(state != State.WAITING)
 			throw new IllegalStateException();
 		Game.eventQueue.insert(Clock.millis(), this);
 	}
 
-	public void call(String function)
-	{
+	public void call(String function) {
 		if(eval != null)
 			throw new IllegalStateException();
 		eval = script.eval(this, function);
@@ -43,17 +36,13 @@ public abstract class AbstractContext implements Context, Runnable
 		Game.eventQueue.insert(Clock.millis(), this);
 	}
 
-	public void run()
-	{
-		if(eval == null)
-		{
+	public void run() {
+		if(eval == null) {
 			return; // inactive...
 		}
 
-		while (true)
-		{
-			switch (state = eval.tick())
-			{
+		while (true) {
+			switch (state = eval.tick()) {
 			case HALTED:
 			case TERMINATED:
 				eval = null;
@@ -81,23 +70,20 @@ public abstract class AbstractContext implements Context, Runnable
 	}
 
 	@Override
-	public boolean query(String var)
-	{
+	public boolean query(String var) {
 		throw new IllegalStateException("query var: '" + var + "'");
 	}
 
 	@Override
-	public State signal(String[] words)
-	{
-		System.out.println("SIGNAL " + Arrays.toString(words));
+	public State signal(String text) {
+		System.out.println("SIGNAL " + text);
 		return State.RUNNING;
 	}
 
 	private long nextSleep;
 
 	@Override
-	public void nextSleep(String time)
-	{
+	public void nextSleep(String time) {
 		Long got = (Long) eval.get(time, null);
 		if(got != null)
 			nextSleep = got.longValue();

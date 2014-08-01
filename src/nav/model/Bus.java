@@ -8,14 +8,12 @@ import nav.Scripts;
 import nav.util.Clock;
 import nav.util.Vec2;
 
-public class Bus
-{
+public class Bus {
 	public final Route route;
 	private final BusAI ai;
 	public final String id;
 
-	public Bus(String id, Route route)
-	{
+	public Bus(String id, Route route) {
 		if(id == null)
 			throw new NullPointerException();
 		if(route == null)
@@ -27,15 +25,13 @@ public class Bus
 		this.ai = new BusAI(this, Scripts.getBusScript());
 	}
 
-	public void start()
-	{
+	public void start() {
 		at = route.stations.get(0);
 		to = route.stations.get(1);
 		ai.start();
 	}
 
-	public void depart()
-	{
+	public void depart() {
 		departedAt = Clock.millis();
 
 		if(capacity <= 0)
@@ -48,18 +44,15 @@ public class Bus
 
 		System.out.println("" + this + " departs at " + at + " with " + passengers.size() + " passengers, destination " + to + ", expected time: " + (int) sec + "s");
 
-		Game.eventQueue.insert(Clock.millis() + travelTime, new Runnable()
-		{
+		Game.eventQueue.insert(Clock.millis() + travelTime, new Runnable() {
 			@Override
-			public void run()
-			{
+			public void run() {
 				ai.resume();
 			}
 		});
 	}
 
-	public void onArrive()
-	{
+	public void onArrive() {
 		System.out.println("" + this + " arrives at " + to + " with " + passengers.size() + " passengers");
 
 		doDepartAt = Clock.millis() + 5000;
@@ -77,8 +70,7 @@ public class Bus
 	public int capacity;
 	private final List<Passenger> passengers = new ArrayList<>();
 
-	public boolean shouldDepart()
-	{
+	public boolean shouldDepart() {
 		if(this.isFull())
 			return true; // depart earlier
 		if(this.hasInboundPassenger())
@@ -86,18 +78,15 @@ public class Bus
 		return this.hasDepartureTimeExpired();
 	}
 
-	public boolean hasDepartureTimeExpired()
-	{
+	public boolean hasDepartureTimeExpired() {
 		return Clock.millis() >= doDepartAt;
 	}
 
-	public boolean hasDepartureDeadlineExpired()
-	{
+	public boolean hasDepartureDeadlineExpired() {
 		return Clock.millis() >= doDepartAt + 10_000L;
 	}
 
-	public boolean hasOutboundPassenger()
-	{
+	public boolean hasOutboundPassenger() {
 		if(this.isEmpty())
 			return false;
 		for(Passenger passenger : this.passengers())
@@ -106,12 +95,9 @@ public class Bus
 		return false;
 	}
 
-	public void outboundPassengerLeavesBus()
-	{
-		for(Passenger passenger : this.passengers())
-		{
-			if(passenger.shouldDepartBusAt(this, at))
-			{
+	public void outboundPassengerLeavesBus() {
+		for(Passenger passenger : this.passengers()) {
+			if(passenger.shouldDepartBusAt(this, at)) {
 				passenger.departBusAt(this, at);
 				return;
 			}
@@ -119,8 +105,7 @@ public class Bus
 		throw new IllegalStateException();
 	}
 
-	public boolean hasInboundPassenger()
-	{
+	public boolean hasInboundPassenger() {
 		if(this.isFull())
 			return false;
 		for(Passenger passenger : at.passengers())
@@ -129,12 +114,9 @@ public class Bus
 		return false;
 	}
 
-	public void inboundPassengerEntersBus()
-	{
-		for(Passenger passenger : at.passengers())
-		{
-			if(passenger.shouldEnterBusAt(this, at))
-			{
+	public void inboundPassengerEntersBus() {
+		for(Passenger passenger : at.passengers()) {
+			if(passenger.shouldEnterBusAt(this, at)) {
 				if(!passenger.tryEnterBusAt(this, at))
 					throw new IllegalStateException();
 				return;
@@ -143,20 +125,17 @@ public class Bus
 		throw new IllegalStateException();
 	}
 
-	public List<Passenger> passengers()
-	{
+	public List<Passenger> passengers() {
 		return Collections.unmodifiableList(new ArrayList<Passenger>(passengers));
 	}
 
-	public boolean onTryEnter(Passenger passenger)
-	{
+	public boolean onTryEnter(Passenger passenger) {
 		if(passengers.indexOf(passenger) != -1)
 			throw new IllegalStateException();
 		if(passengers.size() > capacity)
 			throw new IllegalStateException();
 
-		if(this.isFull())
-		{
+		if(this.isFull()) {
 			System.out.println("" + passenger + " fails to enter " + this + "");
 			return false;
 		}
@@ -166,8 +145,7 @@ public class Bus
 		return true;
 	}
 
-	public void onLeave(Passenger passenger)
-	{
+	public void onLeave(Passenger passenger) {
 		if(passengers.indexOf(passenger) == -1)
 			throw new IllegalStateException();
 
@@ -177,19 +155,16 @@ public class Bus
 		System.out.println("" + passenger + " leaves " + this + "");
 	}
 
-	public boolean isEmpty()
-	{
+	public boolean isEmpty() {
 		return passengers.size() == 0;
 	}
 
-	public boolean isFull()
-	{
+	public boolean isFull() {
 		return passengers.size() == capacity;
 	}
 
 	@Override
-	public String toString()
-	{
+	public String toString() {
 		return this.getClass().getSimpleName() + "#" + id;
 	}
 }

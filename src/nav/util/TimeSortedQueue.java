@@ -24,7 +24,7 @@ public class TimeSortedQueue<T> {
 
 	public T poll(long now) {
 		Slot<T> peeked = queue.peek();
-		if (peeked == null || peeked.time > now)
+		if(peeked == null || peeked.time > now)
 			return null;
 		return queue.poll().item;
 	}
