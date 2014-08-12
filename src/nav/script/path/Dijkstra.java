@@ -79,10 +79,10 @@ public class Dijkstra {
 			closed.put(best, cost);
 
 			for(Edge edge : best.edges) {
-				float costTo = cost + cf.calculateCost(edge);
 				if(closed.containsKey(edge.to)) {
 					continue;
 				}
+				float costTo = cost + cf.calculateCost(edge);
 				if(!open.containsKey(edge.to) || costTo < open.get(edge.to).floatValue()) {
 					open.put(edge.to, Float.valueOf(costTo));
 				}
@@ -99,14 +99,13 @@ public class Dijkstra {
 	}
 
 	private static List<Node> backtrack(Node at, Map<Node, Float> open, Map<Node, Float> closed, CostFunction cf) {
-		List<Node> path = new ArrayList<>();
-
-		while (true) {
+		for(List<Node> path = new ArrayList<>();;) {
 			path.add(at);
 
 			Node to = null;
-			float to1 = Integer.MAX_VALUE;
-			float to2 = Integer.MAX_VALUE;
+			float to1 = Float.MAX_VALUE;
+			float to2 = Float.MAX_VALUE;
+			
 			for(Edge back : at.trace) {
 				Float fromCost = closed.get(back.from);
 				if(fromCost == null) {
@@ -127,10 +126,9 @@ public class Dijkstra {
 
 			if(to1 == 0.0f) {
 				path.add(at);
-				break;
+				Collections.reverse(path);
+				return path;
 			}
 		}
-		Collections.reverse(path);
-		return path;
 	}
 }
