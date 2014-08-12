@@ -29,6 +29,13 @@ public class DijkstraTest {
 			}
 		};
 
-		System.out.println(Dijkstra.path(a, tf, cf));
+		StopFunction sf = new StopFunction() {
+			@Override
+			public boolean shouldStop(Node best, float cost) {
+				return false;
+			}
+		};
+
+		System.out.println(Dijkstra.findPath(a, tf, cf, sf));
 	}
 }

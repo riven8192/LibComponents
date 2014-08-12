@@ -3,29 +3,56 @@ package nav.script.path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
 public class Dijkstra {
-	public static List<Node> path(Node origin, TargetFunction tf, CostFunction cf) {
-		Set<Node> origins = new HashSet<>();
-		origins.add(origin);
-		return path(origins, tf, cf);
+	public static List<Node> findPath(Node origin, TargetFunction tf, CostFunction cf, StopFunction sf) {
+		return findPath(Collections.singleton(origin), tf, cf, sf);
 	}
 
-	public static List<Node> path(Set<Node> origins, TargetFunction tf, CostFunction cf) {
+	public static List<Node> findPath(Set<Node> origins, TargetFunction tf, CostFunction cf, StopFunction sf) {
+		for(PathFinder pf = new PathFinder(origins, tf, cf, sf);;) {
+			switch (pf.step()) {
+			case RUNNING:
+				break;
+			case NOT_FOUND:
+				return null;
+			case STOPPED:
+				return null;
+			case FOUND_PATH:
+				return pf.getPath();
+			}
+		}
+	}
 
-		Map<Node, Float> open = new HashMap<>();
-		Map<Node, Float> closed = new HashMap<>();
-
-		for(Node origin : origins) {
-			open.put(origin, Float.valueOf(0.0f));
+	public static class PathFinder {
+		public static enum State {
+			RUNNING, FOUND_PATH, NOT_FOUND, STOPPED
 		}
 
-		while (true) {
+		private final TargetFunction tf;
+		private final CostFunction cf;
+		private final StopFunction sf;
+		private final Map<Node, Float> open;
+		private final Map<Node, Float> closed;
+		private List<Node> path;
+
+		public PathFinder(Set<Node> origins, TargetFunction tf, CostFunction cf, StopFunction sf) {
+			this.tf = tf;
+			this.cf = cf;
+			this.sf = sf;
+
+			open = new HashMap<>();
+			closed = new HashMap<>();
+			for(Node origin : origins) {
+				open.put(origin, Float.valueOf(0.0f));
+			}
+		}
+
+		public State step() {
 			Node best = null;
 			float cost = Integer.MAX_VALUE;
 			for(Entry<Node, Float> entry : open.entrySet()) {
@@ -36,11 +63,14 @@ public class Dijkstra {
 			}
 
 			if(best == null) {
-				return null;
+				return State.NOT_FOUND;
 			}
-
 			if(tf.isTarget(best)) {
-				return backtrack(best, open, closed, cf);
+				path = backtrack(best, open, closed, cf);
+				return State.FOUND_PATH;
+			}
+			if(sf.shouldStop(best, cost)) {
+				return State.STOPPED;
 			}
 
 			open.remove(best);
@@ -54,6 +84,12 @@ public class Dijkstra {
 					open.put(edge.to, Float.valueOf(costTo));
 				}
 			}
+
+			return State.RUNNING;
+		}
+
+		public List<Node> getPath() {
+			return path;
 		}
 	}
 
