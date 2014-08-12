@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.Map.Entry;
 
@@ -18,11 +19,11 @@ public class Dijkstra {
 			switch (pf.step()) {
 			case RUNNING:
 				break;
-			case NOT_FOUND:
+			case FAILED:
 				return null;
 			case STOPPED:
 				return null;
-			case FOUND_PATH:
+			case REACHED:
 				return pf.getPath();
 			}
 		}
@@ -30,7 +31,7 @@ public class Dijkstra {
 
 	public static class PathFinder {
 		public static enum State {
-			RUNNING, FOUND_PATH, NOT_FOUND, STOPPED
+			RUNNING, REACHED, FAILED, STOPPED
 		}
 
 		private final TargetFunction tf;
@@ -47,6 +48,7 @@ public class Dijkstra {
 
 			open = new HashMap<>();
 			closed = new HashMap<>();
+
 			for(Node origin : origins) {
 				open.put(origin, Float.valueOf(0.0f));
 			}
@@ -54,7 +56,7 @@ public class Dijkstra {
 
 		public State step() {
 			Node best = null;
-			float cost = Integer.MAX_VALUE;
+			float cost = Float.MAX_VALUE;
 			for(Entry<Node, Float> entry : open.entrySet()) {
 				if(best == null || entry.getValue().floatValue() < cost) {
 					best = entry.getKey();
@@ -63,11 +65,11 @@ public class Dijkstra {
 			}
 
 			if(best == null) {
-				return State.NOT_FOUND;
+				return State.FAILED;
 			}
 			if(tf.isTarget(best)) {
 				path = backtrack(best, open, closed, cf);
-				return State.FOUND_PATH;
+				return State.REACHED;
 			}
 			if(sf.shouldStop(best, cost)) {
 				return State.STOPPED;
@@ -78,8 +80,9 @@ public class Dijkstra {
 
 			for(Edge edge : best.edges) {
 				float costTo = cost + cf.calculateCost(edge);
-				if(closed.containsKey(edge.to))
+				if(closed.containsKey(edge.to)) {
 					continue;
+				}
 				if(!open.containsKey(edge.to) || costTo < open.get(edge.to).floatValue()) {
 					open.put(edge.to, Float.valueOf(costTo));
 				}
@@ -89,6 +92,8 @@ public class Dijkstra {
 		}
 
 		public List<Node> getPath() {
+			if(path == null)
+				throw new NoSuchElementException();
 			return path;
 		}
 	}
@@ -104,8 +109,10 @@ public class Dijkstra {
 			float to2 = Integer.MAX_VALUE;
 			for(Edge back : at.trace) {
 				Float fromCost = closed.get(back.from);
-				if(fromCost == null)
+				if(fromCost == null) {
 					continue;
+				}
+
 				to1 = fromCost.floatValue();
 				float backCost = to1 + cf.calculateCost(back);
 				if(to == null || backCost < to2) {
@@ -113,8 +120,9 @@ public class Dijkstra {
 					to2 = backCost;
 				}
 			}
-			if(to == null)
+			if(to == null) {
 				throw new IllegalStateException();
+			}
 			at = to;
 
 			if(to1 == 0.0f) {

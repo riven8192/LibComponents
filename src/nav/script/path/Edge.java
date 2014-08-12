@@ -1,9 +1,9 @@
 package nav.script.path;
 
 public class Edge {
-	private static int id_gen;
+	private static long id_gen;
 
-	public final int id;
+	public final long id;
 	public final Node from, to;
 	public final float distance;
 
@@ -31,7 +31,7 @@ public class Edge {
 
 	@Override
 	public int hashCode() {
-		return id;
+		return (int) id;
 	}
 
 	@Override

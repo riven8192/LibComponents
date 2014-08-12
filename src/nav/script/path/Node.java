@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Node {
-	private static int id_gen;
+	private static long id_gen;
 
-	public int id;
+	public final long id;
 	public final float x, y;
 	public final List<Edge> edges;
 	public final List<Edge> trace;
@@ -21,7 +21,7 @@ public class Node {
 
 	@Override
 	public int hashCode() {
-		return id;
+		return (int)id;
 	}
 
 	@Override
