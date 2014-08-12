@@ -1,10 +1,9 @@
 package nav.model;
 
-import java.util.Arrays;
-
-import nav.script.AbstractContext;
-import nav.script.BasicScript.Block;
-import nav.script.State;
+import nav.util.Clock;
+import net.indiespot.script.crude.AbstractContext;
+import net.indiespot.script.crude.CrudeScript.Block;
+import net.indiespot.script.crude.State;
 
 public class BusAI extends AbstractContext {
 	private final Bus bus;
@@ -20,6 +19,11 @@ public class BusAI extends AbstractContext {
 		eval.define("DOORS_CLOSE_DURATION", Long.valueOf(1_000));
 		eval.define("PASSENGER_ENTER_DURATION", Long.valueOf(1_000));
 		eval.define("PASSENGER_LEAVE_DURATION", Long.valueOf(1_000));
+	}
+
+	@Override
+	public void schedule(Runnable task, long delay) {
+		Game.eventQueue.insert(Clock.millis() + delay, task);
 	}
 
 	@Override

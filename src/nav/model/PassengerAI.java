@@ -1,8 +1,9 @@
 package nav.model;
 
-import nav.script.AbstractContext;
-import nav.script.BasicScript.Block;
-import nav.script.State;
+import nav.util.Clock;
+import net.indiespot.script.crude.AbstractContext;
+import net.indiespot.script.crude.CrudeScript.Block;
+import net.indiespot.script.crude.State;
 
 public class PassengerAI extends AbstractContext {
 	private final Passenger passenger;
@@ -13,6 +14,11 @@ public class PassengerAI extends AbstractContext {
 		if(passenger == null)
 			throw new NullPointerException();
 		this.passenger = passenger;
+	}
+
+	@Override
+	public void schedule(Runnable task, long delay) {
+		Game.eventQueue.insert(Clock.millis() + delay, task);
 	}
 
 	@Override
