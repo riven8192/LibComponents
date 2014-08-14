@@ -7,21 +7,20 @@ public class Node {
 	private static long id_gen;
 
 	public final long id;
-	public final float x, y;
+	public Object attachment;
 	public final List<Edge> edges;
 	public final List<Edge> trace;
 
-	public Node(float x, float y) {
+	public Node(Object attachment) {
 		this.id = ++id_gen;
-		this.x = x;
-		this.y = y;
+		this.attachment = attachment;
 		this.edges = new ArrayList<>();
 		this.trace = new ArrayList<>();
 	}
 
 	@Override
 	public int hashCode() {
-		return (int)id;
+		return (int) id;
 	}
 
 	@Override

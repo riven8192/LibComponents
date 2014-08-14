@@ -5,18 +5,13 @@ public class Edge {
 
 	public final long id;
 	public final Node from, to;
-	public final float distance;
+	public Object attachment;
 
-	public Edge(Node from, Node to) {
+	public Edge(Node from, Node to, Object attachment) {
 		this.id = ++id_gen;
 		this.from = from;
 		this.to = to;
-
-		{
-			float dx = from.x - to.x;
-			float dy = from.y - to.y;
-			this.distance = (float) Math.sqrt(dx * dx + dy * dy);
-		}
+		this.attachment = attachment;
 
 		this.from.edges.add(this);
 		this.to.trace.add(this);
