@@ -6,17 +6,17 @@ import java.util.Map;
 
 import nav.script.path.Edge;
 import nav.script.path.Node;
-import nav.script.road.RoadGrid.RoadType;
+import nav.script.road.RoadBitGrid.RoadType;
 import nav.util.Vec2;
 
-public class RoadGridGraph {
+public class RoadBitGridGraph {
 
-	public static Collection<Node> createGraph(RoadGrid grid) {
+	public static Collection<Node> createGraph(RoadBitGrid grid) {
 		Map<Long, Node> idx2node = new HashMap<>();
 		for(int[] xy : grid.nodes()) {
 			int x = xy[0];
 			int y = xy[1];
-			idx2node.put(RoadGrid.idxKey(x, y), new Node(new Vec2(x, y)));
+			idx2node.put(RoadBitGrid.idxKey(x, y), new Node(new Vec2(x, y)));
 		}
 
 		for(int[] xy : grid.nodes()) {
@@ -29,8 +29,8 @@ public class RoadGridGraph {
 				int y2 = y + dy[i];
 
 				if(grid.isSet(x2, y2)) {
-					Node src = idx2node.get(RoadGrid.idxKey(x, y));
-					Node dst = idx2node.get(RoadGrid.idxKey(x2, y2));
+					Node src = idx2node.get(RoadBitGrid.idxKey(x, y));
+					Node dst = idx2node.get(RoadBitGrid.idxKey(x2, y2));
 
 					RoadType srcRT = grid.getRoadType(x, y);
 					RoadType dstRT = grid.getRoadType(x2, y2);
@@ -49,8 +49,8 @@ public class RoadGridGraph {
 					int y2 = y + dy[i + 2];
 
 					if(grid.isSet(x1, y1) && grid.isSet(x2, y2)) {
-						Node src = idx2node.get(RoadGrid.idxKey(x1, y1));
-						Node dst = idx2node.get(RoadGrid.idxKey(x2, y2));
+						Node src = idx2node.get(RoadBitGrid.idxKey(x1, y1));
+						Node dst = idx2node.get(RoadBitGrid.idxKey(x2, y2));
 
 						new Edge(src, dst, RoadType.INTERSECTION_PASS);
 					}

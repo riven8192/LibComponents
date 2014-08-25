@@ -13,6 +13,14 @@ public class RoadJourneyVehicle {
 		this.len = this.enterRem = this.leaveRem = len;
 	}
 
+	public RoadJourneyStepper head() {
+		return head;
+	}
+
+	public RoadJourneyStepper tail() {
+		return tail;
+	}
+
 	public RoadJourneyStepper.State step() {
 		if(len == leaveRem) {
 			switch (head.step()) {

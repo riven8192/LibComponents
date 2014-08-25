@@ -5,9 +5,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class RoadGrid {
+public class RoadBitGrid {
 	public static void main(String[] args) {
-		RoadGrid rg = new RoadGrid();
+		RoadBitGrid rg = new RoadBitGrid();
 
 		if(!rg.canSet(0, 0))
 			throw new IllegalStateException();
@@ -29,7 +29,7 @@ public class RoadGrid {
 		}
 	}
 
-	public RoadGrid() {
+	public RoadBitGrid() {
 
 	}
 
