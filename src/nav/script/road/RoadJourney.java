@@ -37,7 +37,7 @@ public class RoadJourney {
 			dirs.add(dir);
 		}
 
-		int lane = 1;
+		int lane = 0;
 		tileBits = new ArrayList<>();
 		for(int i = 1; i < dirs.size(); i++) {
 			Dir prev = dirs.get(i - 1);

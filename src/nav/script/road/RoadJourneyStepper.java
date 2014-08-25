@@ -4,7 +4,7 @@ import nav.util.Vec2;
 
 public class RoadJourneyStepper {
 	public static enum State {
-		MOVING, BLOCKED, ARRIVED;
+		MOVING, SUB_MOVE, BLOCKED, ARRIVED;
 	}
 
 	public final RoadJourney journey;
@@ -30,6 +30,8 @@ public class RoadJourneyStepper {
 	}
 
 	public Vec2 getCoords() {
+		if(tileIndex == -1)
+			return null;
 		RoadTile tile = this.getTile();
 		int bit = this.getTileBit();
 		int x = RoadTile.bitToX(bit);
