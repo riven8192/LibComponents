@@ -1,6 +1,6 @@
 package nav.script.road;
 
-import nav.util.Vec2;
+import java.util.List;
 
 public class RoadJourneyStepper {
 	public static enum State {
@@ -8,16 +8,27 @@ public class RoadJourneyStepper {
 	}
 
 	public final RoadJourney journey;
+	private List<int[]> laneBits;
 
 	private int tileIndex;
 	private int tileCell;
 	private final boolean doEnter;
 	private int moveCounter;
+	private int lane;
 
 	public RoadJourneyStepper(RoadJourney journey, boolean doEnter) {
 		this.journey = journey;
 		this.doEnter = doEnter;
 		this.tileCell = -1;
+		this.lane = 0;
+		this.laneBits = journey.tileBits0;
+	}
+
+	public void switchLanes() {
+		if(laneBits == journey.tileBits0)
+			laneBits = journey.tileBits1;
+		else
+			laneBits = journey.tileBits0;
 	}
 
 	public RoadTile getTile() {
@@ -25,20 +36,8 @@ public class RoadJourneyStepper {
 	}
 
 	public int getTileBit() {
-		int[] bits = journey.tileBits.get(tileIndex);
-		return bits[tileCell == -1 ? 0 : tileCell];
-	}
-
-	public Vec2 getCoords() {
-		if(tileIndex == -1)
-			return null;
-		RoadTile tile = this.getTile();
-		int bit = this.getTileBit();
-		int x = RoadTile.bitToX(bit);
-		int y = RoadTile.bitToY(bit);
-		return new Vec2(//
-				tile.x + 0.125f + x * 0.25f,//
-				tile.y + 0.125f + y * 0.25f);
+		int[] bits = laneBits.get(tileIndex);
+		return tileCell == -1 ? -1 : bits[tileCell];
 	}
 
 	public int counter() {
@@ -46,16 +45,17 @@ public class RoadJourneyStepper {
 	}
 
 	public State step() {
-		int[] bits = journey.tileBits.get(tileIndex);
+		int[] bits = laneBits.get(tileIndex);
 		if(tileCell == bits.length - 1) {
 			if(++tileIndex == journey.tiles.size())
 				if(true)
 					tileIndex = 0;
 				else
 					return State.ARRIVED;
-			bits = journey.tileBits.get(tileIndex);
+			bits = laneBits.get(tileIndex);
 			tileCell = -1;
 		}
+
 		RoadTile tile = journey.tiles.get(tileIndex);
 		int nextCell = bits[tileCell + 1];
 		if(doEnter) {

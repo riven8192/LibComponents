@@ -12,6 +12,7 @@ import java.util.List;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
+import nav.script.road.RoadBitGrid.RoadType;
 import nav.script.road.RoadJourneyStepper.State;
 import nav.script.road.verlet.Vec3;
 import nav.script.road.verlet.VerletParticle;
@@ -21,63 +22,101 @@ import nav.util.Vec2;
 public class RoadGridTest {
 	public static void main(String[] args) {
 
-		RoadTile t1 = new RoadTile("A", 5 + 0, 5 + 0);
-		RoadTile t2 = new RoadTile("B", 5 + 1, 5 + 0);
-		RoadTile t3 = new RoadTile("C", 5 + 2, 5 + 0);
-		RoadTile t4 = new RoadTile("D", 5 + 2, 5 + -1);
-		RoadTile t5 = new RoadTile("E", 5 + 3, 5 + -1);
-		RoadTile t6 = new RoadTile("F", 5 + 3, 5 + -2);
-		RoadTile t7 = new RoadTile("G", 5 + 3, 5 + -3);
-		RoadTile t8 = new RoadTile("H", 5 + 2, 5 + -3);
-		RoadTile t9 = new RoadTile("I", 5 + 2, 5 + -4);
+		List<RoadTile> tiles = new ArrayList<>();
+		tiles.add(new RoadTile(5 + 0, 5 + 0));
+		tiles.add(new RoadTile(5 + 1, 5 + 0));
+		tiles.add(new RoadTile(5 + 2, 5 + 0));
+		tiles.add(new RoadTile(5 + 2, 5 + -1));
+		tiles.add(new RoadTile(5 + 3, 5 + -1));
+		tiles.add(new RoadTile(5 + 3, 5 + -2));
+		tiles.add(new RoadTile(5 + 3, 5 + -3));
+		tiles.add(new RoadTile(5 + 2, 5 + -3));
+		tiles.add(new RoadTile(5 + 2, 5 + -4));
+		tiles.add(new RoadTile(5 + 1, 5 + -4));
+		tiles.add(new RoadTile(5 + 0, 5 + -4));
+		tiles.add(new RoadTile(5 - 1, 5 + -4));
+		tiles.add(new RoadTile(5 - 2, 5 + -4));
+		tiles.add(new RoadTile(5 - 3, 5 + -4));
+		tiles.add(new RoadTile(5 - 3, 5 + -3));
+		tiles.add(new RoadTile(5 - 3, 5 + -2));
+		tiles.add(new RoadTile(5 - 3, 5 + -1));
+		tiles.add(new RoadTile(5 - 3, 5 + 0));
+		tiles.add(new RoadTile(5 - 2, 5 + 0));
+		tiles.add(new RoadTile(5 - 1, 5 + 0));
+
+		final RoadBitGrid bitGrid = new RoadBitGrid();
+		for(RoadTile tile : tiles) {
+			bitGrid.set(tile.x, tile.y);
+		}
 
 		final RoadTileGrid grid = new RoadTileGrid();
-		grid.put(t1);
-		grid.put(t2);
-		grid.put(t3);
-		grid.put(t4);
-		grid.put(t5);
-		grid.put(t6);
-		grid.put(t7);
-		grid.put(t8);
-		grid.put(t9);
+		for(RoadTile tile : tiles) {
+			grid.put(tile);
+		}
 
 		List<RoadTile> route = new ArrayList<>();
 		for(int i = 0; i < 3; i++) {
-			route.add(t1);
-			route.add(t2);
-			route.add(t3);
-			route.add(t4);
-			route.add(t5);
-			route.add(t6);
-			route.add(t7);
-			route.add(t8);
-			route.add(t9); // go back
-			route.add(t8);
-			route.add(t7);
-			route.add(t6);
-			route.add(t5);
-			route.add(t4);
-			route.add(t3);
-			route.add(t2);
+			for(RoadTile tile : tiles) {
+				route.add(tile);
+			}
 		}
 
 		final RoadJourney journey = new RoadJourney(route);
-		final RoadJourneyVehicle stepper1 = new RoadJourneyVehicle(journey, 5 + 3);
-		final RoadJourneyVehicle stepper2 = new RoadJourneyVehicle(journey, 5 + 3);
-		final RoadJourneyVehicle stepper3 = new RoadJourneyVehicle(journey, 5 + 3);
-
-		final float[] maxSubTilesPerStep = new float[] { 0.060f, 0.060f, 0.060f };
-		final float[] minSubTilesPerStep = new float[] { 0.010f, 0.010f, 0.010f };
-		final float[] accSubTilesPerStep = new float[] { 0.002f, 0.003f, 0.004f };
-		stepper1.subTilesPerStep = minSubTilesPerStep[0];
-		stepper2.subTilesPerStep = minSubTilesPerStep[1];
-		stepper3.subTilesPerStep = minSubTilesPerStep[2];
+		RoadJourneyVehicle stepper1 = new RoadJourneyVehicle(journey, 5 + 4);
+		RoadJourneyVehicle stepper2 = new RoadJourneyVehicle(journey, 5 + 4);
+		RoadJourneyVehicle stepper3 = new RoadJourneyVehicle(journey, 5 + 4);
 
 		//
 
-		class VerletVehicle {
+		class Vehicle {
 			private final RoadJourneyVehicle vehicle;
+
+			private float minSubTilesPerStep = 0.010f;
+			private float maxSubTilesPerStep = 0.060f;
+			private float accSubTilesPerStep = 0.001f;
+
+			public Vehicle(RoadJourneyVehicle vehicle) {
+				this.vehicle = vehicle;
+			}
+
+			public void tick() {
+
+				float min = minSubTilesPerStep;
+				float max = maxSubTilesPerStep;
+				float acc = accSubTilesPerStep;
+
+				RoadTile tile = vehicle.head().getTile();
+				switch (bitGrid.getRoadType(tile.x, tile.y)) {
+				case STRAIGHT:
+					max *= 1.00f;
+					acc *= 1.00f;
+					break;
+				case CORNER:
+					max *= 0.40f;
+					acc *= 0.40f;
+					break;
+				case INTERSECTION:
+					max *= 0.30f;
+					acc *= 0.30f;
+					break;
+				default:
+					break;
+				}
+
+				State state = vehicle.step();
+
+				if(state == State.MOVING)
+					vehicle.subTilesPerStep += acc;
+				else if(state == State.BLOCKED)
+					vehicle.subTilesPerStep *= 0.75f;
+
+				vehicle.subTilesPerStep = Math.max(min, vehicle.subTilesPerStep);
+				vehicle.subTilesPerStep = Math.min(max, vehicle.subTilesPerStep);
+			}
+		}
+
+		class VerletVehicle {
+			private final Vehicle vehicle;
 			List<VerletParticle> roadNodes = new ArrayList<>();
 			List<VerletParticle> swingNodes = new ArrayList<>();
 			List<VerletParticle> vehicleNodes = new ArrayList<>();
@@ -86,7 +125,7 @@ public class RoadGridTest {
 			List<VerletSpring> swingVehicleSprings = new ArrayList<>();
 			List<VerletSpring> vehicleVehicleSprings = new ArrayList<>();
 
-			public VerletVehicle(int segmentCount, RoadJourneyVehicle vehicle) {
+			public VerletVehicle(int segmentCount, Vehicle vehicle) {
 				this.vehicle = vehicle;
 
 				float x = 0;
@@ -143,8 +182,8 @@ public class RoadGridTest {
 				int h = 0;
 				for(VerletParticle vp : roadNodes) {
 					vp.tick();
-					if(vehicle.hasHistory(h)) {
-						Vec2 prev = vehicle.getHistory(h);
+					Vec2 prev = vehicle.vehicle.getHistory(h);
+					if(prev != null) {
 						vp.setPosition(prev.x, prev.y, 0.0f);
 						vp.setVelocity(0.0f, 0.0f, 0.0f);
 					}
@@ -179,14 +218,21 @@ public class RoadGridTest {
 			}
 		}
 
-		JPanel canvas = new JPanel() {
-			VerletVehicle vv1 = new VerletVehicle(3, stepper1);
-			VerletVehicle vv2 = new VerletVehicle(3, stepper2);
-			VerletVehicle vv3 = new VerletVehicle(3, stepper3);
+		final Vehicle v1 = new Vehicle(stepper1);
+		final Vehicle v2 = new Vehicle(stepper2);
+		final Vehicle v3 = new Vehicle(stepper3);
+		final VerletVehicle vv1 = new VerletVehicle(3, v1);
+		final VerletVehicle vv2 = new VerletVehicle(3, v2);
+		final VerletVehicle vv3 = new VerletVehicle(3, v3);
+		v1.accSubTilesPerStep *= 2.0f;
+		v1.maxSubTilesPerStep *= 2.0f;
 
+		JPanel canvas = new JPanel() {
 			@Override
 			protected void paintComponent(Graphics g) {
 				super.paintComponent(g);
+				int scale = 64;
+				float hw = 5.0f;
 
 				if(false) {
 					for(int y = 0; y < 20; y++) {
@@ -194,13 +240,13 @@ public class RoadGridTest {
 							RoadTile tile = grid.get(x, y);
 							if(tile == null)
 								continue;
-							drawRoadTile(g, tile);
+							drawRoadTile(g, tile, scale);
 						}
 					}
 
-					drawVehicleHead(g, stepper1);
-					drawVehicleHead(g, stepper2);
-					drawVehicleHead(g, stepper3);
+					drawVehicleHead(g, v1.vehicle, scale);
+					drawVehicleHead(g, v2.vehicle, scale);
+					drawVehicleHead(g, v3.vehicle, scale);
 				}
 				else {
 					for(int y = 0; y < 20; y++) {
@@ -208,48 +254,30 @@ public class RoadGridTest {
 							RoadTile tile = grid.get(x, y);
 							if(tile == null)
 								continue;
-							drawRoadTile2(g, tile);
+							drawRoadTile2(g, tile, scale);
 						}
 					}
 				}
 
 				{
+					long tm1 = System.nanoTime();
+					long t0 = System.nanoTime();
+					v1.tick();
+					v2.tick();
+					v3.tick();
+					long t1 = System.nanoTime();
 
-					State state1 = stepper1.step();
-					State state2 = stepper2.step();
-					State state3 = stepper3.step();
-
-					if(state1 == State.MOVING)
-						stepper1.subTilesPerStep += accSubTilesPerStep[0];
-					else if(state1 == State.BLOCKED)
-						stepper1.subTilesPerStep *= 0.75f;
-					stepper1.subTilesPerStep = Math.max(minSubTilesPerStep[0], stepper1.subTilesPerStep);
-					stepper1.subTilesPerStep = Math.min(maxSubTilesPerStep[0], stepper1.subTilesPerStep);
-
-					if(state2 == State.MOVING)
-						stepper2.subTilesPerStep += accSubTilesPerStep[1];
-					else if(state2 == State.BLOCKED)
-						stepper2.subTilesPerStep *= 0.75f;
-					stepper2.subTilesPerStep = Math.max(minSubTilesPerStep[1], stepper2.subTilesPerStep);
-					stepper2.subTilesPerStep = Math.min(maxSubTilesPerStep[1], stepper2.subTilesPerStep);
-
-					if(state3 == State.MOVING)
-						stepper3.subTilesPerStep += accSubTilesPerStep[2];
-					else if(state3 == State.BLOCKED)
-						stepper3.subTilesPerStep *= 0.75f;
-					stepper3.subTilesPerStep = Math.max(minSubTilesPerStep[2], stepper3.subTilesPerStep);
-					stepper3.subTilesPerStep = Math.min(maxSubTilesPerStep[2], stepper3.subTilesPerStep);
-
-					vv1.setVelocity(stepper1.subTilesPerStep);
-					vv2.setVelocity(stepper2.subTilesPerStep);
-					vv3.setVelocity(stepper3.subTilesPerStep);
+					vv1.setVelocity(v1.vehicle.subTilesPerStep);
+					vv2.setVelocity(v2.vehicle.subTilesPerStep);
+					vv3.setVelocity(v3.vehicle.subTilesPerStep);
 
 					vv1.tick();
 					vv2.tick();
 					vv3.tick();
-
-					int scale = 64;
-					float hw = 5.0f;
+					long t2 = System.nanoTime();
+					//System.out.println("3a took: " + (t1 - t0) + "ns");
+					//System.out.println("3b took: " + (t2 - t1) / 1000 + "us");
+					//System.out.println(t0 - tm1);
 
 					g.setColor(Color.BLUE);
 					for(VerletVehicle vv : new VerletVehicle[] { vv1, vv2, vv3 }) {
@@ -306,6 +334,7 @@ public class RoadGridTest {
 					ny = dy / dd;
 				}
 
+				// rotate 90deg
 				float dx = ny;
 				float dy = -nx;
 
@@ -330,7 +359,7 @@ public class RoadGridTest {
 				g.fillPolygon(p);
 			}
 
-			private void drawRoadTile2(Graphics g, RoadTile tile) {
+			private void drawRoadTile2(Graphics g, RoadTile tile, int scale) {
 				for(int y = 0; y < 4; y++) {
 					for(int x = 0; x < 4; x++) {
 						Color c = Color.GRAY;
@@ -340,7 +369,7 @@ public class RoadGridTest {
 				}
 			}
 
-			private void drawRoadTile(Graphics g, RoadTile tile) {
+			private void drawRoadTile(Graphics g, RoadTile tile, int scale) {
 				for(int y = 0; y < 4; y++) {
 					for(int x = 0; x < 4; x++) {
 						Color c;
@@ -359,22 +388,26 @@ public class RoadGridTest {
 						}
 
 						g.setColor(c);
-						g.fillRect(tile.x * 64 + x * 16, tile.y * 64 + y * 16, 16, 16);
+						g.fillRect(tile.x * scale + x * scale / 4, tile.y * scale + y * scale / 4, scale / 4, scale / 4);
 					}
 				}
 			}
 
-			private void drawVehicleHead(Graphics g, RoadJourneyVehicle vehicle) {
+			private void drawVehicleHead(Graphics g, RoadJourneyVehicle vehicle, int scale) {
 				RoadTile tile = vehicle.head().getTile();
 				int bit = vehicle.head().getTileBit();
+				if(bit == -1)
+					return;
+
 				int x = RoadTile.bitToX(bit);
 				int y = RoadTile.bitToY(bit);
 
-				int scale = 64;
 				g.setColor(Color.WHITE);
 				g.fillRect(tile.x * scale + x * scale / 4, tile.y * scale + y * scale / 4, scale / 4, scale / 4);
 
-				Vec2 coords = vehicle.head().getCoords();
+				Vec2 coords = vehicle.getHistory(0);
+				if(coords == null)
+					return;
 				int r = 5;
 				g.setColor(Color.BLACK);
 				g.fillOval((int) (coords.x * scale) - r, (int) (coords.y * scale) - r, r * 2, r * 2);
@@ -389,8 +422,16 @@ public class RoadGridTest {
 		canvas.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				RoadTile t = grid.get(5 + 3, 5 + -1);
-				t.setEnterAllowed(14, !t.isEnterAllowed(14));
+				if(e.getButton() == 1) {
+					RoadTile t = grid.get(5 + 3, 5 + -1);
+					t.setEnterAllowed(14, !t.isEnterAllowed(14));
+				}
+				else if(e.getButton() == 3) {
+					RoadTile tile = v1.vehicle.head().getTile();
+					if(bitGrid.getRoadType(tile.x, tile.y) == RoadType.STRAIGHT) {
+						v1.vehicle.head().switchLanes();
+					}
+				}
 			}
 		});
 

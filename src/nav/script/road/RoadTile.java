@@ -1,24 +1,15 @@
 package nav.script.road;
 
-import java.util.Arrays;
-
 public class RoadTile {
 	public static enum Dir {
 		NORTH, EAST, SOUTH, WEST
 	}
 
-	public final String name;
 	public final int x, y;
 
-	public RoadTile(String name, int x, int y) {
-		this.name = name;
+	public RoadTile(int x, int y) {
 		this.x = x;
 		this.y = y;
-	}
-
-	@Override
-	public String toString() {
-		return name;
 	}
 
 	private int usage = 0x0000_0000;
@@ -68,9 +59,7 @@ public class RoadTile {
 	//
 
 	public static int[] getBits(int lane, Dir a, Dir b) {
-		int[] bits = DIRDIR_CELLS[lane][a.ordinal()][b.ordinal()];
-		System.out.println(a.name() + ":" + b.name() + ":" + lane + " " + Arrays.toString(bits));
-		return bits;
+		return DIRDIR_CELLS[lane][a.ordinal()][b.ordinal()];
 	}
 
 	public static int coordsToBit(int x, int y) {
@@ -78,17 +67,17 @@ public class RoadTile {
 			throw new IllegalStateException();
 		if(y < 0 || y >= 4)
 			throw new IllegalStateException();
-		return y * 4 + x;
+		return (y << 2) + x;
 	}
 
 	public static int bitToX(int bit) {
 		verifyBit(bit);
-		return bit % 4;
+		return bit & 3;
 	}
 
 	public static int bitToY(int bit) {
 		verifyBit(bit);
-		return bit / 4;
+		return bit >> 2;
 	}
 
 	private static void verifyBit(int bit) {

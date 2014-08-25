@@ -7,7 +7,8 @@ import nav.script.road.RoadTile.Dir;
 
 public class RoadJourney {
 	final List<RoadTile> tiles;
-	final List<int[]> tileBits;
+	final List<int[]> tileBits0;
+	final List<int[]> tileBits1;
 
 	public RoadJourney(List<RoadTile> tiles) {
 		this.tiles = tiles;
@@ -37,26 +38,13 @@ public class RoadJourney {
 			dirs.add(dir);
 		}
 
-		int lane = 0;
-		tileBits = new ArrayList<>();
+		tileBits0 = new ArrayList<>();
+		tileBits1 = new ArrayList<>();
 		for(int i = 1; i < dirs.size(); i++) {
 			Dir prev = dirs.get(i - 1);
 			Dir curr = dirs.get(i - 0);
-			tileBits.add(RoadTile.getBits(lane, prev, curr));
+			tileBits0.add(RoadTile.getBits(0, prev, curr));
+			tileBits1.add(RoadTile.getBits(1, prev, curr));
 		}
-	}
-
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		for(int i = 0; i < tiles.size(); i++) {
-			if(sb.length() != 0) {
-				sb.append(' ');
-			}
-			for(int bit : tileBits.get(i)) {
-				sb.append(tiles.get(i).isEmpty(bit) ? '_' : 'X');
-			}
-		}
-		return sb.toString();
 	}
 }

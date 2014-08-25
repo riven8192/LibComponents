@@ -37,8 +37,6 @@ public class RoadBitGrid {
 
 	private static final int[] dx_8n = new int[] { -1, -1, -1, 0, +1, +1, +1, 0 };
 	private static final int[] dy_8n = new int[] { -1, 0, +1, +1, +1, 0, -1, -1 };
-	private static final int[] dx_4n = new int[] { -1, 0, +1, 0 };
-	private static final int[] dy_4n = new int[] { 0, -1, 0, +1 };
 
 	public boolean canSet(int x, int y) {
 		if(this.isSet(x, y))

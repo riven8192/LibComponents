@@ -5,39 +5,42 @@ import nav.util.Vec2;
 public class RoadJourneyVehicle {
 	public final RoadJourney journey;
 	private final RoadJourneyStepper head;
-	private final RoadJourneyStepper tail;
-	private int len, enterRem, leaveRem;
+	private int len, leaveRem;
 
 	public RoadJourneyVehicle(RoadJourney journey, int len) {
 		this.journey = journey;
 		this.head = new RoadJourneyStepper(journey, true);
-		this.tail = new RoadJourneyStepper(journey, false);
-		this.len = this.enterRem = this.leaveRem = len;
-		tileTrail = new Vec2[len];
+		this.len = this.leaveRem = len;
+		this.tileHistory = new RoadTile[len];
+		this.bitHistory = new int[len];
+		this.historyIndex = -1;
 	}
 
 	public RoadJourneyStepper head() {
 		return head;
 	}
 
-	public RoadJourneyStepper tail() {
-		return tail;
-	}
-
-	public boolean hasHistory(int age) {
-		int size = Math.min(trailIndex, tileTrail.length);
-		int index = (size - 1) - age;
-		return (index >= 0);
-	}
-
 	public Vec2 getHistory(int age) {
-		int size = Math.min(trailIndex, tileTrail.length);
-		int index = (size - 1) - age;
-		return (index >= 0) ? tileTrail[(trailIndex + tileTrail.length - age) % tileTrail.length] : null;
+		if(historyIndex == -1)
+			return null;
+
+		int idx = (historyIndex + tileHistory.length - age) % tileHistory.length;
+		RoadTile tile = tileHistory[idx];
+		if(tile == null)
+			return null;
+
+		int bit = bitHistory[idx];
+		int x = RoadTile.bitToX(bit);
+		int y = RoadTile.bitToY(bit);
+
+		return new Vec2(//
+				tile.x + 0.125f + x * 0.25f,//
+				tile.y + 0.125f + y * 0.25f);
 	}
 
-	private Vec2[] tileTrail;
-	private int trailIndex = -1;
+	private RoadTile[] tileHistory;
+	private int[] bitHistory;
+	private int historyIndex;
 
 	public float subTilesPerStep;
 	private float subTilesTraversed;
@@ -51,8 +54,12 @@ public class RoadJourneyVehicle {
 		if(len == leaveRem) {
 			switch (head.step()) {
 			case MOVING:
-				tileTrail[++trailIndex % tileTrail.length] = head.getCoords();
-				enterRem--;
+				historyIndex = ++historyIndex % tileHistory.length;
+				if(tileHistory[historyIndex] != null)
+					tileHistory[historyIndex].leave(bitHistory[historyIndex]);
+				tileHistory[historyIndex] = head.getTile();
+				bitHistory[historyIndex] = head.getTileBit();
+
 				break;
 			case BLOCKED:
 				return RoadJourneyStepper.State.BLOCKED;
@@ -67,9 +74,16 @@ public class RoadJourneyVehicle {
 			return RoadJourneyStepper.State.ARRIVED;
 		}
 
-		if(enterRem < 0) {
-			tail.step();
-		}
 		return RoadJourneyStepper.State.MOVING;
+	}
+
+	public void destroy() {
+		for(int i = 0; i < tileHistory.length; i++) {
+			if(tileHistory[i] != null) {
+				tileHistory[i].leave(bitHistory[i]);
+				tileHistory[i] = null;
+			}
+		}
+		historyIndex = -1;
 	}
 }
